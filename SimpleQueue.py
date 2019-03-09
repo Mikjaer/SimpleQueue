@@ -18,16 +18,33 @@ class myConfig:
         self.foobar = "hest";
         return self.config.sections()
 
+    def queueExists(self, queue):
+        try:
+            self.config[queue]["run"]
+        except KeyError:
+            return False;
+        else:
+            return True;
+
+    def queueList(self):
+        queues = []
+        for key in self.config.sections():
+            if self.queueExists(key):
+                queues.append(key)
+
+        return queues
+
+
 config = myConfig()
 
-config = configparser.ConfigParser()
-config.read("config.ini")
+#config = configparser.ConfigParser()
+#config.read("config.ini")
 
-for key in config.sections():
-    print key
-    print config[key]["run"]
+#for key in config.sections():
+#    print key
+#    print config[key]["run"]
 
-sys.exit(1)
+#sys.exit(1)
 
 import lockfile
 import setproctitle
@@ -35,7 +52,7 @@ from flask import Flask
 app = Flask(__name__)
 counter = 0
 
-interactive = False
+interactive = True  # False
 
 def log(msg):
     global interactive
@@ -65,12 +82,23 @@ def err(errorMessage):
     sys.exit(1)
     print "--------------"
 
-@app.route("/", methods = ['GET'])
-def hello():
+@app.route('/')
+def flask_default():
+    html = "<strong>Active queues:</strong><ul>"
+    for queue in config.queueList():
+        html = html + "<li><a href='/"+queue+"'>" + queue + "</a></li>";
+    return html + "</ul>"; 
+
+@app.route('/<path:queue>')
+def hello(queue):
     global counter
-    log("Doing stuff " + str(counter))
-    counter = counter + 1
-    return "Foobar" + str(counter)
+    if (config.queueExists(queue)):
+        log("Doing stuff " + str(queue))
+        counter = counter + 1
+        return "Queue" + queue + " called, counter:" + str(counter)
+    else:
+        log("Queue not found")
+        return "Queue not found";
 
 @app.route("/demo", methods = ['GET'])
 def flash_demo():
@@ -84,7 +112,7 @@ def put_queues():
 
 def flaskThread():
     app.debug = False
-    app.run("127.0.0.1","8080");
+    app.run("0.0.0.0","8080");
 
 def start():
     global interactive
@@ -116,14 +144,14 @@ def queueThread():
     thread.start_new_thread( flaskThread, ())
 
     while True:
-        log("Loop started " + str(c))
-        c = c + 1
-        if i != counter:
-            log("Counter set to "+str(counter))
-            i = counter
+    #    log("Loop started " + str(c))
+    #    c = c + 1
+    #    if i != counter:
+    #        log("Counter set to "+str(counter))
+    #        i = counter
         time.sleep(1);
-        for key in config.sections():
-            print key
+        #for key in config.sections():
+         #   print key
 
 start()
 
