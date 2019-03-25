@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+
+
 import thread,sys,os
 import daemon
 from daemon import pidfile
@@ -7,13 +9,23 @@ import syslog
 import time
 import pprint
 import configparser
-
+from gevent.pywsgi import WSGIServer
+from flask import send_from_directory
 
 class myConfig:
     def __init__(self):
         self.config = configparser.ConfigParser()
-        self.config.read("config.ini")
     
+        if os.path.isfile("config.ini"):
+            self.config.read("config.ini")
+        elif os.path.isfile("/etc/SimpleQueue.ini"):
+            self.config.read("/etc/SimpleQueue.ini")
+        elif os.path.isfile("/etc/SimpleQueue/config.ini"):
+            self.config.read("/etc/SimpleQueue/config.ini")
+        else:
+            print "SimpleQueue: Could not locate config.ini";
+            sys.exit(1)
+
     def queues(self):
         self.foobar = "hest";
         return self.config.sections()
@@ -34,8 +46,13 @@ class myConfig:
 
         return queues
 
+    def settings(self, key):
+        if key in self.config["Settings"]:
+            return self.config["Settings"][key];
 
 config = myConfig()
+
+
 
 #config = configparser.ConfigParser()
 #config.read("config.ini")
@@ -110,16 +127,25 @@ def put_queues():
     log("Got queue put");
     return "Thankyou";
 
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'),'./artwork/favico/favicon.ico', mimetype='image/vnd.microsoft.icon')
+
+
 def flaskThread():
     app.debug = False
-    app.run("0.0.0.0","8080");
+    app.run(config.settings("listen"),config.settings("port"));
+
+    #http_server = WSGIServer(('', 5000), app)
+    #http_server.serve_forever();
 
 def start():
     global interactive
 
-    pidDir = "/var/run"
-    pidFilename = "SimpleQueue.pid";
-    pidFile = pidDir + "/" + pidFilename
+    pidDir = config.settings("piddir");
+    pidFile = config.settings("pidfile")
+
+    pidFileAbs = pidDir + "/" + pidFile
     
     global counter
 
