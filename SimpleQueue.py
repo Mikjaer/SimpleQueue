@@ -11,11 +11,16 @@ import pprint
 import configparser
 from gevent.pywsgi import WSGIServer
 from flask import send_from_directory
+from flask import jsonify
+from flask import request
+import Queue
+from pwd import getpwnam
+import subprocess
 
 class myConfig:
     def __init__(self):
-        self.config = configparser.ConfigParser()
-    
+        self.config = configparser.ConfigParser(inline_comment_prefixes=";")
+        
         if os.path.isfile("config.ini"):
             self.config.read("config.ini")
         elif os.path.isfile("/etc/SimpleQueue.ini"):
@@ -50,12 +55,26 @@ class myConfig:
         if key in self.config["Settings"]:
             return self.config["Settings"][key];
 
+    def queueSetting(self, queue, key):
+        if key in self.config[queue]:
+            return self.config[queue][key];
+        else:
+            return False
+            print "SimpleQueue: Could not locate "+key+" in "+queue 
+
 config = myConfig()
+queues = {}
 
+# Setting up queues
 
-
-#config = configparser.ConfigParser()
-#config.read("config.ini")
+for q in config.queueList():
+    queueLength = config.queueSetting(q,"length")
+    if queueLength:
+        queues[q] = Queue.Queue(maxsize=int(queueLength))
+        print "Initialized queue `"+q+"` with '"+str(queueLength)+"' elements"
+    else:
+        queues[q] = Queue.Queue() 
+        queueLength = -1
 
 #for key in config.sections():
 #    print key
@@ -108,11 +127,28 @@ def flask_default():
 
 @app.route('/<path:queue>')
 def hello(queue):
-    global counter
     if (config.queueExists(queue)):
-        log("Doing stuff " + str(queue))
-        counter = counter + 1
-        return "Queue" + queue + " called, counter:" + str(counter)
+        #### Print stats
+        if queues[queue].full():
+            full = " queue is full"
+        else:
+            full = " queue is NOT full";
+
+        log("Queue `"+queue+"` unfinished_tasks:" + str(queues[queue].unfinished_tasks) + " " + str(queues[queue].maxsize)+full)
+        #### /Print stats
+
+        if request.args.get('payload'):
+            payload = request.args.get('payload')
+        else:
+            payload = "";
+
+        if not queues[queue].full():
+            queues[queue].put(payload,True,None)
+            return jsonify({"status":"success"});
+        else:
+            return jsonify(
+                {"status":"rejected", 
+                 "message":"Queue full"});
     else:
         log("Queue not found")
         return "Queue not found";
@@ -176,6 +212,25 @@ def queueThread():
     #        log("Counter set to "+str(counter))
     #        i = counter
         time.sleep(1);
+        for q in config.queueList():
+            if not queues[q].empty():
+                print "Processing job from " + q + ", payload: "+queues[q].get()
+                
+                runas = config.queueSetting(q,"runas")
+               
+                if runas:
+                    groups = os.getgroups()
+                    os.setgroups([])
+                    os.setresgid(getpwnam(runas).pw_gid, getpwnam(runas).pw_gid,-1);
+                    os.setresuid(getpwnam(runas).pw_uid, getpwnam(runas).pw_uid,-1);
+                
+                subprocess.call([config.queueSetting(q,"run")])
+
+                if runas:
+                    os.setresgid(0,0,-1)
+                    os.setresuid(0,0,-1)
+                    os.setgroups(groups)
+
         #for key in config.sections():
          #   print key
 
