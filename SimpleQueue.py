@@ -1,6 +1,11 @@
 #!/usr/bin/python
 
 
+# apt-get install python-setproctitle
+# pip install python-daemon flask
+# pip install configparser
+
+
 
 import thread,sys,os
 import daemon
@@ -16,6 +21,10 @@ from flask import request
 import Queue
 from pwd import getpwnam
 import subprocess
+import signal
+import logging
+from logging.handlers import RotatingFileHandler
+import select
 
 class myConfig:
     def __init__(self):
@@ -64,23 +73,7 @@ class myConfig:
 
 config = myConfig()
 queues = {}
-
-# Setting up queues
-
-for q in config.queueList():
-    queueLength = config.queueSetting(q,"length")
-    if queueLength:
-        queues[q] = Queue.Queue(maxsize=int(queueLength))
-        print "Initialized queue `"+q+"` with '"+str(queueLength)+"' elements"
-    else:
-        queues[q] = Queue.Queue() 
-        queueLength = -1
-
-#for key in config.sections():
-#    print key
-#    print config[key]["run"]
-
-#sys.exit(1)
+heartbeat = 0
 
 import lockfile
 import setproctitle
@@ -88,16 +81,26 @@ from flask import Flask
 app = Flask(__name__)
 counter = 0
 
-interactive = True  # False
+interactive = False
 
 def log(msg):
     global interactive
     """Write message to log file"""
     if interactive:
-        print msg
+        print "LOG:"+msg
     else:
         syslog.openlog("SimpleQueue")
         syslog.syslog(msg)
+
+def err(errorMessage):
+    msg = "ERROR: " + errorMessage
+    syslog.openlog("SimpleQueue")
+    syslog.syslog(msg)
+    print msg
+    sys.exit(1)
+def debug(msg):
+    #log(msg)
+    pass;
 
 if len(sys.argv) > 1:
     for arg in sys.argv[1:]:
@@ -106,20 +109,14 @@ if len(sys.argv) > 1:
             log("Running interactive")
 
 
-
-# apt-get install python-setproctitle
-# pip install python-daemon flask
-# pip install configparser
-
 setproctitle.setproctitle("SimpleQueue")
-
-def err(errorMessage):
-    print "ERROR: " + errorMessage
-    sys.exit(1)
-    print "--------------"
 
 @app.route('/')
 def flask_default():
+    global heartbeat
+
+    if request.args.get('status'):
+        return jsonify({"heartbeat": heartbeat, "idle": int(time.time()) - heartbeat})
     html = "<strong>Active queues:</strong><ul>"
     for queue in config.queueList():
         html = html + "<li><a href='/"+queue+"'>" + queue + "</a></li>";
@@ -134,7 +131,6 @@ def hello(queue):
         else:
             full = " queue is NOT full";
 
-        log("Queue `"+queue+"` unfinished_tasks:" + str(queues[queue].unfinished_tasks) + " " + str(queues[queue].maxsize)+full)
         #### /Print stats
 
         if request.args.get('payload'):
@@ -143,12 +139,16 @@ def hello(queue):
             payload = "";
 
         if not queues[queue].full():
+            log("Queue `"+queue+"` job enqued") 
             queues[queue].put(payload,True,None)
             return jsonify({"status":"success"});
         else:
+            log("Queue `"+queue+"` job rejected") 
             return jsonify(
                 {"status":"rejected", 
                  "message":"Queue full"});
+        
+        log("Queue `"+queue+"` unfinished_tasks:" + str(queues[queue].unfinished_tasks) + " maxsize:" + str(queues[queue].maxsize)+full)
     else:
         log("Queue not found")
         return "Queue not found";
@@ -169,7 +169,7 @@ def favicon():
 
 
 def flaskThread():
-    app.debug = False
+    #app.debug = False
     app.run(config.settings("listen"),config.settings("port"));
 
     #http_server = WSGIServer(('', 5000), app)
@@ -177,44 +177,67 @@ def flaskThread():
 
 def start():
     global interactive
+    log("Starting SimpleQueue")
 
     pidDir = config.settings("piddir");
     pidFile = config.settings("pidfile")
 
     pidFileAbs = pidDir + "/" + pidFile
-    
+   
     global counter
 
     if not os.access(pidDir, os.W_OK):
         err("Cannot write to " + pidDir)
 
-    elif os.path.isfile(pidFile):
-        pid = lockfile.pidlockfile.read_pid_from_pidfile(pidFile)
+    elif os.path.isfile(pidFileAbs):
+        pid = lockfile.pidlockfile.read_pid_from_pidfile(pidFileAbs)
         err("Pid "+pidFile+" file already exists (pid="+str(pid)+"), refusing to overwrite possibly existing instance")
 
     else:
-        log("Starting loop")
         if interactive:
             queueThread();
         else:
-            with daemon.DaemonContext(pidfile=pidfile.TimeoutPIDLockFile(pidFile)):
+            debug("Deamonizing:"+pidFileAbs);
+            context = daemon.DaemonContext(
+                pidfile=pidfile.TimeoutPIDLockFile(pidFileAbs),
+                signal_map={
+                    signal.SIGTERM: terminate,
+                    signal.SIGTSTP: terminate
+                })
+            context.terminate = terminate
+            with context:
                 queueThread();
 
+def terminate(sugnum, frame):
+    log("Shutting down SimpleQueue")
+    sys.exit(0)
+
 def queueThread():
+    global heartbeat
     i = -1;
     c = 1;
     thread.start_new_thread( flaskThread, ())
 
+
+    # Setting up queues
+
+    for q in config.queueList():
+        queueLength = config.queueSetting(q,"length")
+        if queueLength:
+            queues[q] = Queue.Queue(maxsize=int(queueLength))
+            log("Setting up queue `"+q+"` with '"+str(queueLength)+"' elements")
+        else:
+            queues[q] = Queue.Queue() 
+            queueLength = -1
+
+
+
     while True:
-    #    log("Loop started " + str(c))
-    #    c = c + 1
-    #    if i != counter:
-    #        log("Counter set to "+str(counter))
-    #        i = counter
-        time.sleep(1);
+        heartbeat = int(time.time())
         for q in config.queueList():
             if not queues[q].empty():
-                print "Processing job from " + q + ", payload: "+queues[q].get()
+                payload = queues[q].get()
+                log("Processing job from " + q + ", payload: "+payload)
                 
                 runas = config.queueSetting(q,"runas")
                
@@ -224,15 +247,47 @@ def queueThread():
                     os.setresgid(getpwnam(runas).pw_gid, getpwnam(runas).pw_gid,-1);
                     os.setresuid(getpwnam(runas).pw_uid, getpwnam(runas).pw_uid,-1);
                 
-                subprocess.call([config.queueSetting(q,"run")])
+                process = subprocess.Popen(         # Start process in background, and attach pipes
+                    config.queueSetting(q,"run"),
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE
+                )
+              
+                process.stdin.write(payload)        # Send payload
+                process.stdin.close();
 
-                if runas:
+                stdout=select.poll();               # Hook a select.pool to out-pipes
+                stdout.register(process.stdout)
+            
+                stderr=select.poll();
+                stderr.register(process.stderr)
+
+                while True:
+                    if stdout.poll(1000) or stderr.poll(1000):    # Empty pipes?
+                        if stdout.poll(1):
+                            line = process.stdout.readline()
+                            if line != "":
+                                log("stdout:"+line.rstrip())
+                    
+                        if stderr.poll(1):
+                            line = process.stderr.readline()
+                            if line != "":
+                                log("stderr:"+line.rstrip())
+                    
+                    else:
+                        time.sleep(1)
+                
+                    if not process.poll() is None:  # Process still running? and pipes empty?
+                        break;
+
+                if runas:                   # Regain root-privileges
                     os.setresgid(0,0,-1)
                     os.setresuid(0,0,-1)
                     os.setgroups(groups)
+                log("Job done, returncode "+ str(process.returncode))
 
-        #for key in config.sections():
-         #   print key
+        time.sleep(1);  # End of loop
 
 start()
 
