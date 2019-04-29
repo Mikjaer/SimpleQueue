@@ -12,6 +12,6 @@ for ($i=1; $i<=10; $i++)
     print "Doing stuph $i\n";
     sleep(1);
 }
-    fwrite(STDERR, "Diz is error\n\nfoobar\n");
-print "Foobarstop\n";
+    fwrite(STDERR, "Diz is error\n");
+print "Stopping execution with errorcode 123\n";
 die(123);
