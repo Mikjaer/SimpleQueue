@@ -1,0 +1,7 @@
+Package: simplequeue
+Architecture: all
+Maintainer: Mike Mikjaer
+Depends: python-setproctitle,python-daemon,python-flask,python-configparser,python-gevent
+Priority: optional
+Version: 0.1-11-17
+Description: A Simple queue and process manager
