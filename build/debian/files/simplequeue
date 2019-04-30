@@ -1,0 +1,31 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          simplequeue 
+# Required-Start:    $local_fs $remote_fs $network $syslog $named
+# Required-Stop:     $local_fs $remote_fs $network $syslog $named
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# X-Interactive:     true
+# Short-Description: Start/stop simplequeue 
+### END INIT INFO
+
+set -e
+case "$1" in
+	start)
+		echo "Starting SimpleQueue "
+		/usr/share/simplequeue/SimpleQueue.py
+	;;
+	stop)
+		echo "Stopping SimpleQueue"
+	        if [ -f /tmp/SimpleQueue.pid ]; then	
+			kill `cat /tmp/SimpleQueue.pid`	
+		else
+			echo "  - no pid-file found"
+		fi
+	;;
+	*)
+	echo "Usage: /etc/init.d/simplequeue {start|stop}" >&2
+	exit 1
+	;; 
+esac
+
