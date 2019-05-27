@@ -170,7 +170,7 @@ def favicon():
 
 def flaskThread():
     #app.debug = False
-    app.run(config.settings("listen"),config.settings("port"));
+    app.run(config.settings("listen"),int(config.settings("port")));
 
     #http_server = WSGIServer(('', 5000), app)
     #http_server.serve_forever();
