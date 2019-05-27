@@ -248,7 +248,7 @@ def queueThread():
                     os.setresuid(getpwnam(runas).pw_uid, getpwnam(runas).pw_uid,-1);
                 
                 process = subprocess.Popen(         # Start process in background, and attach pipes
-                    config.queueSetting(q,"run"),
+                    config.queueSetting(q,"run").split(' '),
                     stdin=subprocess.PIPE,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE
