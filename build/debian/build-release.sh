@@ -1,4 +1,5 @@
 #!/bin/bash
+mkdir -p build-dir/usr/bin
 mkdir -p build-dir/usr/share/simplequeue
 mkdir -p build-dir/etc/init.d
 mkdir -p build-dir/DEBIAN
@@ -17,13 +18,14 @@ cp files/simplequeue build-dir/etc/init.d
 
 cp ../../config.ini build-dir/etc/SimpleQueue.ini
 cp ../../SimpleQueue.py build-dir/usr/share/simplequeue
+cp ../../sq.py build-dir/usr/bin/simplequeue
 cp ../../testJob.py build-dir/usr/share/simplequeue
 cp ../../testJob.php build-dir/usr/share/simplequeue
 
-dpkg-deb --build ./build-dir simpleschema_$version-$build-$pkgbuild.deb
+dpkg-deb --build ./build-dir simplequeue_$version-$build-$pkgbuild.deb
 
 if [ -f /opt/dist.sh ]; then
-	/opt/dist.sh `pwd`/simpleschema_$version-$build-$pkgbuild.deb simpleschema
+	/opt/dist.sh `pwd`/simplequeue_$version-$build-$pkgbuild.deb simplequeue
 fi
-rm simpleschema_*
+rm simplequeue_*
 rm -fr build-dir
