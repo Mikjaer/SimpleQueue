@@ -4,13 +4,22 @@ import pprint
 import sys
 
 if len(sys.argv) < 2:
-    print "Usage: sq [queue]\n";
+    print "Usage: sq <queue> [payload]\n";
     sys.exit(-1)
 
-resp = requests.get('http://127.0.0.1:8080/'+sys.argv[1])
+if len(sys.argv) > 2: # Got payload
+    payload = "?payload="+(" ".join(sys.argv[1:]))
+else:
+    payload = "";
+
+try:
+	resp = requests.get('http://127.0.0.1:8080/'+sys.argv[1]+"payload")
+except Exception:
+	print "Error: Could not connect to 127.0.0.1:8080\n";
+	sys.exit(-1);
+
 if resp.status_code != 200:
-    # This means something went wrong.
-    raise ApiError('GET /tasks/ {}'.format(resp.status_code))
+	print "Error: unknown error, status code:".format(resp.status_code)
 
 print resp.json()["status"]
 
