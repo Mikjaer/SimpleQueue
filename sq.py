@@ -25,5 +25,5 @@ try:
 	print resp.json()["status"]
 except Exception:
 	print "Error: response not well-formated json:\n";
-	print resp;
+	print resp.content;
 	sys.exit(-1);
