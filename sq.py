@@ -21,5 +21,9 @@ except Exception:
 if resp.status_code != 200:
 	print "Error: unknown error, status code:".format(resp.status_code)
 
-print resp.json()["status"]
-
+try:
+	print resp.json()["status"]
+except Exception:
+	print "Error: response not well-formated json:\n";
+	print resp;
+	sys.exit(-1);
