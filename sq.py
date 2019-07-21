@@ -13,7 +13,7 @@ else:
     payload = "";
 
 try:
-	resp = requests.get('http://127.0.0.1:8080/'+sys.argv[1]+"payload")
+	resp = requests.get('http://127.0.0.1:8080/'+sys.argv[1]+payload)
 except Exception:
 	print "Error: Could not connect to 127.0.0.1:8080\n";
 	sys.exit(-1);
