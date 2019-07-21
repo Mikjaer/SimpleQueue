@@ -8,7 +8,7 @@ if len(sys.argv) < 2:
     sys.exit(-1)
 
 if len(sys.argv) > 2: # Got payload
-    payload = "?payload="+(" ".join(sys.argv[1:]))
+    payload = "?payload="+(" ".join(sys.argv[2:]))
 else:
     payload = "";
 
