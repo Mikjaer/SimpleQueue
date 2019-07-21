@@ -18,9 +18,11 @@ cp files/simplequeue build-dir/etc/init.d
 
 cp ../../config.ini build-dir/etc/SimpleQueue.ini
 cp ../../SimpleQueue.py build-dir/usr/share/simplequeue
-cp ../../sq.py build-dir/usr/bin/simplequeue
+cp ../../sq.py build-dir/usr/bin/sq
 cp ../../testJob.py build-dir/usr/share/simplequeue
 cp ../../testJob.php build-dir/usr/share/simplequeue
+
+chmod 755 build-dir/usr/bin/sq
 
 dpkg-deb --build ./build-dir simplequeue_$version-$build-$pkgbuild.deb
 
