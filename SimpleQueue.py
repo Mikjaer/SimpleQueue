@@ -243,9 +243,13 @@ def queueThread():
                
                 if runas:
                     groups = os.getgroups()
-                    os.setgroups([])
-                    os.setresgid(getpwnam(runas).pw_gid, getpwnam(runas).pw_gid,-1);
-                    os.setresuid(getpwnam(runas).pw_uid, getpwnam(runas).pw_uid,-1);
+                    try:
+                        os.setgroups([])
+                        os.setresgid(getpwnam(runas).pw_gid, getpwnam(runas).pw_gid,-1);
+                        os.setresuid(getpwnam(runas).pw_uid, getpwnam(runas).pw_uid,-1);
+                    except KeyError:
+                        log("Unknown user "+runas+", aborting execution");
+                        break
                 
                 process = subprocess.Popen(         # Start process in background, and attach pipes
                     config.queueSetting(q,"run").split(' '),
