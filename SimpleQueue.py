@@ -26,19 +26,56 @@ import logging
 from logging.handlers import RotatingFileHandler
 import select
 
+interactive = False
+
+
+if len(sys.argv) > 1:
+    for arg in sys.argv[1:]:
+        if arg == "-i":
+            interactive = True
+            log("Running interactive")
+
+
+
+def log(msg):
+    global interactive
+    """Write message to log file"""
+    if interactive:
+        print "LOG:"+msg
+    else:
+        syslog.openlog("SimpleQueue")
+        syslog.syslog(msg)
+
+
+def err(errorMessage):
+    msg = "ERROR: " + errorMessage
+    syslog.openlog("SimpleQueue")
+    syslog.syslog(msg)
+    print msg
+    sys.exit(1)
+def debug(msg):
+    #log(msg)
+    pass;
+
+
+
+
 class myConfig:
     def __init__(self):
         self.config = configparser.ConfigParser(inline_comment_prefixes=";")
         
         if os.path.isfile("config.ini"):
-            self.config.read("config.ini")
+            configFile = "config.ini"
         elif os.path.isfile("/etc/SimpleQueue.ini"):
-            self.config.read("/etc/SimpleQueue.ini")
+            configFile = "/etc/SimpleQueue.ini"
         elif os.path.isfile("/etc/SimpleQueue/config.ini"):
-            self.config.read("/etc/SimpleQueue/config.ini")
+            configFile = "/etc/SimpleQueue/config.ini"
         else:
-            print "SimpleQueue: Could not locate config.ini";
+            log("SimpleQueue: Could not locate config.ini, giving up");
             sys.exit(1)
+
+        log("Reading config from "+configFile)
+        self.config.read(configFile);
 
     def queues(self):
         self.foobar = "hest";
@@ -80,33 +117,6 @@ import setproctitle
 from flask import Flask
 app = Flask(__name__)
 counter = 0
-
-interactive = False
-
-def log(msg):
-    global interactive
-    """Write message to log file"""
-    if interactive:
-        print "LOG:"+msg
-    else:
-        syslog.openlog("SimpleQueue")
-        syslog.syslog(msg)
-
-def err(errorMessage):
-    msg = "ERROR: " + errorMessage
-    syslog.openlog("SimpleQueue")
-    syslog.syslog(msg)
-    print msg
-    sys.exit(1)
-def debug(msg):
-    #log(msg)
-    pass;
-
-if len(sys.argv) > 1:
-    for arg in sys.argv[1:]:
-        if arg == "-i":
-            interactive = True
-            log("Running interactive")
 
 
 setproctitle.setproctitle("SimpleQueue")
