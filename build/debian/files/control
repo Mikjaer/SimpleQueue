@@ -3,5 +3,5 @@ Architecture: all
 Maintainer: Mike Mikjaer
 Depends: python-setproctitle,python-daemon | python3-daemon,python-flask | python3-flask,python-configparser,python-gevent | python3-gevent
 Priority: optional
-Version: 0.1-24-50
+Version: 0.1-28-51
 Description: A Simple queue and process manager

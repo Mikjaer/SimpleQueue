@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 
 # apt-get install python-setproctitle
@@ -7,7 +7,7 @@
 
 
 
-import thread,sys,os
+import sys,os
 import daemon
 from daemon import pidfile
 import syslog
@@ -18,15 +18,26 @@ from gevent.pywsgi import WSGIServer
 from flask import send_from_directory
 from flask import jsonify
 from flask import request
-import Queue
+import queue
 from pwd import getpwnam
 import subprocess
 import signal
 import logging
 from logging.handlers import RotatingFileHandler
 import select
+import _thread
 
 interactive = False
+
+def log(msg):
+    global interactive
+    """Write message to log file"""
+    if interactive:
+        print ("LOG:",msg)
+    else:
+        syslog.openlog("SimpleQueue")
+        syslog.syslog(msg)
+
 
 
 if len(sys.argv) > 1:
@@ -37,21 +48,11 @@ if len(sys.argv) > 1:
 
 
 
-def log(msg):
-    global interactive
-    """Write message to log file"""
-    if interactive:
-        print "LOG:"+msg
-    else:
-        syslog.openlog("SimpleQueue")
-        syslog.syslog(msg)
-
-
 def err(errorMessage):
     msg = "ERROR: " + errorMessage
     syslog.openlog("SimpleQueue")
     syslog.syslog(msg)
-    print msg
+    print (msg)
     sys.exit(1)
 def debug(msg):
     #log(msg)
@@ -106,7 +107,7 @@ class myConfig:
             return self.config[queue][key];
         else:
             return False
-            print "SimpleQueue: Could not locate "+key+" in "+queue 
+            print ("SimpleQueue: Could not locate "+key+" in "+queue) 
 
 config = myConfig()
 queues = {}
@@ -226,7 +227,7 @@ def queueThread():
     global heartbeat
     i = -1;
     c = 1;
-    thread.start_new_thread( flaskThread, ())
+    _thread.start_new_thread( flaskThread, ())
 
 
     # Setting up queues
@@ -234,10 +235,10 @@ def queueThread():
     for q in config.queueList():
         queueLength = config.queueSetting(q,"length")
         if queueLength:
-            queues[q] = Queue.Queue(maxsize=int(queueLength))
+            queues[q] = queue.Queue(maxsize=int(queueLength))
             log("Setting up queue `"+q+"` with '"+str(queueLength)+"' elements")
         else:
-            queues[q] = Queue.Queue() 
+            queues[q] = queue.Queue() 
             queueLength = -1
 
 
@@ -268,7 +269,7 @@ def queueThread():
                     stderr=subprocess.PIPE
                 )
               
-                process.stdin.write(payload)        # Send payload
+                process.stdin.write(payload.encode())        # Send payload
                 process.stdin.close();
 
                 stdout=select.poll();               # Hook a select.pool to out-pipes
@@ -280,14 +281,14 @@ def queueThread():
                 while True:
                     if stdout.poll(1000) or stderr.poll(1000):    # Empty pipes?
                         if stdout.poll(1):
-                            line = process.stdout.readline()
-                            if line != "":
-                                log("stdout:"+line.rstrip())
+                            line = process.stdout.readline().rstrip()
+                            if len(line) != 0: 
+                                log("stdout:-".encode()+str(len(line)).encode()+":".encode()+line+"-".encode())
                     
                         if stderr.poll(1):
                             line = process.stderr.readline()
-                            if line != "":
-                                log("stderr:"+line.rstrip())
+                            if len(line) != 0: 
+                                log("stderr:".encode()+line)
                     
                     else:
                         time.sleep(1)
