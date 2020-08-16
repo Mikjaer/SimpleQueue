@@ -291,12 +291,12 @@ def queueThread():
                         if stdout.poll(1):
                             line = process.stdout.readline().rstrip()
                             if len(line) != 0: 
-                                log("stdout:-".encode()+str(len(line)).encode()+":".encode()+line+"-".encode())
+                                log("stdout:-".encode()+line.encode())
                     
                         if stderr.poll(1):
                             line = process.stderr.readline()
                             if len(line) != 0: 
-                                log("stderr:".encode()+line)
+                                log("stderr:".encode()+line.encode())
                     
                     else:
                         time.sleep(1)
