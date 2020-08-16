@@ -1,8 +1,9 @@
 #!/bin/bash
 mkdir -p build-dir/usr/bin
 mkdir -p build-dir/usr/share/simplequeue
-mkdir -p build-dir/etc/init.d
+#mkdir -p build-dir/etc/init.d
 mkdir -p build-dir/DEBIAN
+mkdir -p build-dir/etc/systemd/system
 
 pkgbuild=`cat pkgbuild`
 ((pkgbuild++))
@@ -15,7 +16,7 @@ sed -i "s/Version:.*/Version: $version-$build-$pkgbuild/" files/control
 cp files/control build-dir/DEBIAN
 cp files/conffiles build-dir/DEBIAN
 #cp files/simplequeue build-dir/etc/init.d
-cp files/simplequeue.service build-dir/systemd/system
+cp files/simplequeue.service build-dir/etc/systemd/system
 
 cp ../../config.ini build-dir/etc/SimpleQueue.ini
 cp ../../SimpleQueue.py build-dir/usr/share/simplequeue
