@@ -10,3 +10,5 @@ RestartSec=1
 User=root
 ExecStart=/usr/share/simplequeue/SimpleQueue.py
 
+[Install]
+WantedBy=multi-user.target 
