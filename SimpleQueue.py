@@ -39,6 +39,14 @@ def log(msg):
         syslog.syslog(msg)
 
 
+# Global exception handling 
+# Will still crash, but not 
+# w/o logging exc eption first
+def my_except_hook(exctype, value, traceback):
+	log("E: Caught Global Exception")
+        log("E: "+repr(exctype))
+	log("E: "+repr(value))
+	log("E: "+repr(traceback))
 
 if len(sys.argv) > 1:
     for arg in sys.argv[1:]:
