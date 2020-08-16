@@ -14,7 +14,8 @@ sed -i "s/Version:.*/Version: $version-$build-$pkgbuild/" files/control
 
 cp files/control build-dir/DEBIAN
 cp files/conffiles build-dir/DEBIAN
-cp files/simplequeue build-dir/etc/init.d
+#cp files/simplequeue build-dir/etc/init.d
+cp files/simplequeue.service build-dir/systemd/system
 
 cp ../../config.ini build-dir/etc/SimpleQueue.ini
 cp ../../SimpleQueue.py build-dir/usr/share/simplequeue
