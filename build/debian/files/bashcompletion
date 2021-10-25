@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+_sq_list(){
+COMPREPLY=($(compgen -W '`sq list complete`' -- "${COMP_WORDS[1]}"))
+}
+complete -F _sq_list sq 
