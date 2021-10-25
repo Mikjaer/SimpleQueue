@@ -259,6 +259,7 @@ def queueThread():
             if not queues[q].empty():
                 payload = queues[q].get()
                 log("Processing job from " + q + ", payload: "+payload)
+                my_env = os.environ.copy()
                 
                 runas = config.queueSetting(q,"runas")
                
@@ -268,17 +269,26 @@ def queueThread():
                         os.setgroups([])
                         os.setresgid(getpwnam(runas).pw_gid, getpwnam(runas).pw_gid,-1);
                         os.setresuid(getpwnam(runas).pw_uid, getpwnam(runas).pw_uid,-1);
+               
+                        my_env["LOGNAME"] = runas;
+                        my_env["USER"] = runas;
+                        my_env["HOME"] = os.path.expanduser("~"+runas)
+                        my_env["PWD"] = os.path.expanduser("~"+runas)
+                
+                        cwd = os.getcwd();
+                        os.chdir(os.path.expanduser("~"+runas))
                     except KeyError:
                         log("Unknown user "+runas+", aborting execution");
                         break
-                
+                                
                 process = subprocess.Popen(         # Start process in background, and attach pipes
                     config.queueSetting(q,"run").split(' '),
                     stdin=subprocess.PIPE,
                     stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE
+                    stderr=subprocess.PIPE,env=my_env
                 )
               
+                log("Running:"+ str(config.queueSetting(q,"run").split(' ')));
                 process.stdin.write(payload.encode())        # Send payload
                 process.stdin.close();
 
@@ -310,6 +320,8 @@ def queueThread():
                     os.setresgid(0,0,-1)
                     os.setresuid(0,0,-1)
                     os.setgroups(groups)
+                    os.chdir(cwd)
+                
                 log("Job done, returncode "+ str(process.returncode))
 
         time.sleep(1);  # End of loop
