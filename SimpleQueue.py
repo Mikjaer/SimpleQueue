@@ -137,7 +137,8 @@ def flask_default():
     global heartbeat
 
     if request.args.get('status'):
-        return jsonify({"heartbeat": heartbeat, "idle": int(time.time()) - heartbeat})
+        pprint.pprint(config.queueList())
+        return jsonify({"heartbeat": heartbeat, "idle": int(time.time()) - heartbeat, "queues": config.queueList()})
     html = "<strong>Active queues:</strong><ul>"
     for queue in config.queueList():
         html = html + "<li><a href='/"+queue+"'>" + queue + "</a></li>";
