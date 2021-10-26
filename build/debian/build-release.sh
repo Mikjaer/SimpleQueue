@@ -19,6 +19,7 @@ cp 20-simplequeue.conf build-dir/etc/rsyslog.d
 cp files/control build-dir/DEBIAN
 cp files/conffiles build-dir/DEBIAN
 cp files/postinst build-dir/DEBIAN
+chmod 555 build-dir/DEBIAN/postinst
 #cp files/simplequeue build-dir/etc/init.d
 cp files/simplequeue.service build-dir/etc/systemd/system
 cp files/bashcompletion build-dir/etc/bash_completion.d/simplequeue
