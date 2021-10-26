@@ -18,6 +18,7 @@ sed -i "s/Version:.*/Version: $version-$build-$pkgbuild/" files/control
 cp 20-simplequeue.conf build-dir/etc/rsyslog.d
 cp files/control build-dir/DEBIAN
 cp files/conffiles build-dir/DEBIAN
+cp files/postinst build-dir/DEBIAN
 #cp files/simplequeue build-dir/etc/init.d
 cp files/simplequeue.service build-dir/etc/systemd/system
 cp files/bashcompletion build-dir/etc/bash_completion.d/simplequeue

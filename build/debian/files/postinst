@@ -1,0 +1,3 @@
+systemctl restart rsyslog.service
+systemctl restart simplequeue.service
+source /etc/bash_completion.d/simplequeue
