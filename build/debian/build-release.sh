@@ -4,6 +4,7 @@ mkdir -p build-dir/usr/share/simplequeue
 #mkdir -p build-dir/etc/init.d
 mkdir -p build-dir/DEBIAN
 mkdir -p build-dir/etc/systemd/system
+mkdir -p build-dir/etc/rsyslog.d
 mkdir -p build-dir/etc/bash_completion.d/
 
 pkgbuild=`cat pkgbuild`
@@ -14,6 +15,7 @@ build=`git rev-list --count HEAD`
 version=`cat ../../VERSION`
 sed -i "s/Version:.*/Version: $version-$build-$pkgbuild/" files/control
 
+cp 20-simplequeue.conf build-dir/etc/rsyslog.d
 cp files/control build-dir/DEBIAN
 cp files/conffiles build-dir/DEBIAN
 #cp files/simplequeue build-dir/etc/init.d
